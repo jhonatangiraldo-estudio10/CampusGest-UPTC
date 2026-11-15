@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 300" role="img" aria-label="Supabase: seguridad y persistencia">
+<rect width="960" height="300" fill="#f6f8fc"/>
+<text x="40" y="48" font-family="Arial,sans-serif" font-size="24" font-weight="700" fill="#17345c">Supabase: seguridad y persistencia</text>
+<defs><marker id="arr" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L9,3 L0,6 Z" fill="#2760a8"/></marker></defs>
+<rect x="45" y="112" rx="13" width="240" height="90" fill="white" stroke="#2b64a6" stroke-width="2"/>
+<text x="165.0" y="151.5" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="600" fill="#193e6c">Usuario autenticado</text>
+<text x="165.0" y="172.5" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="600" fill="#193e6c">Supabase Auth</text>
+<rect x="370" y="112" rx="13" width="230" height="90" fill="white" stroke="#2b64a6" stroke-width="2"/>
+<text x="485.0" y="151.5" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="600" fill="#193e6c">RLS + controles</text>
+<text x="485.0" y="172.5" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="600" fill="#193e6c">por usuario</text>
+<rect x="685" y="112" rx="13" width="235" height="90" fill="white" stroke="#2b64a6" stroke-width="2"/>
+<text x="802.5" y="151.5" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="600" fill="#193e6c">solicitudes_campus</text>
+<text x="802.5" y="172.5" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="600" fill="#193e6c">PostgreSQL</text>
+<line x1="285" y1="157" x2="363" y2="157" stroke="#2760a8" stroke-width="3" marker-end="url(#arr)"/>
+<line x1="600" y1="157" x2="678" y2="157" stroke="#2760a8" stroke-width="3" marker-end="url(#arr)"/>
+<text x="40" y="274" font-family="Arial,sans-serif" font-size="13" fill="#66748c">CampusAid UPTC · Caso 3 · Diagramas de referencia</text></svg>

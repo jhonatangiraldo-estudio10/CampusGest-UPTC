@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 300" role="img" aria-label="N8N: clasificación de solicitudes">
+<rect width="960" height="300" fill="#f6f8fc"/>
+<text x="40" y="48" font-family="Arial,sans-serif" font-size="24" font-weight="700" fill="#17345c">N8N: clasificación de solicitudes</text>
+<defs><marker id="arr" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L9,3 L0,6 Z" fill="#2760a8"/></marker></defs>
+<rect x="30" y="112" rx="13" width="150" height="90" fill="white" stroke="#2b64a6" stroke-width="2"/>
+<text x="105.0" y="151.5" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="600" fill="#193e6c">Webhook</text>
+<text x="105.0" y="172.5" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="600" fill="#193e6c">POST</text>
+<rect x="225" y="112" rx="13" width="150" height="90" fill="white" stroke="#2b64a6" stroke-width="2"/>
+<text x="300.0" y="151.5" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="600" fill="#193e6c">Validación</text>
+<text x="300.0" y="172.5" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="600" fill="#193e6c">y sesión</text>
+<rect x="420" y="112" rx="13" width="150" height="90" fill="white" stroke="#2b64a6" stroke-width="2"/>
+<text x="495.0" y="151.5" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="600" fill="#193e6c">Switch</text>
+<text x="495.0" y="172.5" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="600" fill="#193e6c">3 trámites</text>
+<rect x="615" y="112" rx="13" width="150" height="90" fill="white" stroke="#2b64a6" stroke-width="2"/>
+<text x="690.0" y="151.5" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="600" fill="#193e6c">Supabase</text>
+<text x="690.0" y="172.5" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="600" fill="#193e6c">guardar</text>
+<rect x="810" y="112" rx="13" width="130" height="90" fill="white" stroke="#2b64a6" stroke-width="2"/>
+<text x="875.0" y="151.5" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="600" fill="#193e6c">Correo</text>
+<text x="875.0" y="172.5" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="600" fill="#193e6c">+ JSON</text>
+<line x1="180" y1="157" x2="218" y2="157" stroke="#2760a8" stroke-width="3" marker-end="url(#arr)"/>
+<line x1="375" y1="157" x2="413" y2="157" stroke="#2760a8" stroke-width="3" marker-end="url(#arr)"/>
+<line x1="570" y1="157" x2="608" y2="157" stroke="#2760a8" stroke-width="3" marker-end="url(#arr)"/>
+<line x1="765" y1="157" x2="803" y2="157" stroke="#2760a8" stroke-width="3" marker-end="url(#arr)"/>
+<text x="40" y="274" font-family="Arial,sans-serif" font-size="13" fill="#66748c">CampusAid UPTC · Caso 3 · Diagramas de referencia</text></svg>

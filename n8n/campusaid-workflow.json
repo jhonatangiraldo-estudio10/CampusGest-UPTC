@@ -1,0 +1,289 @@
+{
+  "name": "CampusAid UPTC - Caso 3: Mesa de Ayuda y Tutorías",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "campusaid-solicitudes",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-webhook-01",
+      "name": "Webhook POST Solicitud",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [220, 300],
+      "webhookId": "campusaid-solicitudes"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Extracción de datos del webhook\nconst item = $input.first().json.body || $input.first().json;\n\nconst nombre = (item.estudiante_nombre || '').trim();\nconst codigo = String(item.codigo_uptc || '').trim();\nconst email = (item.email_institucional || '').trim().toLowerCase();\nconst tipo = (item.tipo_tramite || '').trim();\nconst asunto = (item.asignatura_o_lab || '').trim();\nconst desc = (item.descripcion || '').trim();\nconst requestId = item.request_id || $execution.id;\n\n// 2. Validaciones estrictas UPTC (Matriz P01, P02, P03)\nconst regexCodigo = /^[0-9]{9}$/;\nconst regexEmail = /^[^@\\s]+@uptc\\.edu\\.co$/i;\nconst tiposValidos = ['Tutoria', 'Laboratorio', 'Certificado'];\n\nif (!nombre || nombre.length < 3) {\n  throw new Error('Validación fallida: Nombre de estudiante inválido.');\n}\nif (!regexCodigo.test(codigo)) {\n  throw new Error('Validación fallida: El código UPTC debe tener exactamente 9 dígitos.');\n}\nif (!regexEmail.test(email)) {\n  throw new Error('Validación fallida: El correo debe terminar en @uptc.edu.co.');\n}\nif (!tiposValidos.includes(tipo)) {\n  throw new Error(`Validación fallida: Trámite '${tipo}' no soportado.`);\n}\nif (!desc || desc.length < 5) {\n  throw new Error('Validación fallida: Descripción insuficiente.');\n}\n\nreturn {\n  json: {\n    valido: true,\n    estudiante_id: item.estudiante_id || null,\n    estudiante_nombre: nombre,\n    codigo_uptc: codigo,\n    email_institucional: email,\n    tipo_tramite: tipo,\n    asignatura_o_lab: asunto,\n    descripcion: desc,\n    request_id: requestId,\n    estado: 'Pendiente',\n    creado_en: new Date().toISOString()\n  }\n};"
+      },
+      "id": "node-validacion-02",
+      "name": "Validación Reglas UPTC",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.tipo_tramite }}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "Tutoria",
+              "output": 0
+            },
+            {
+              "value2": "Laboratorio",
+              "output": 1
+            },
+            {
+              "value2": "Certificado",
+              "output": 2
+            }
+          ]
+        }
+      },
+      "id": "node-switch-03",
+      "name": "Switch Tipo Trámite",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [660, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "asg-01",
+              "name": "area_asignada",
+              "value": "Coordinación Académica",
+              "type": "string"
+            },
+            {
+              "id": "asg-02",
+              "name": "email_coordinador",
+              "value": "coordinacion.academica@uptc.edu.co",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-set-tutoria",
+      "name": "Destino: Tutoría",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [900, 180]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "asg-03",
+              "name": "area_asignada",
+              "value": "Responsable de Laboratorios",
+              "type": "string"
+            },
+            {
+              "id": "asg-04",
+              "name": "email_coordinador",
+              "value": "laboratorios.ingenieria@uptc.edu.co",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-set-lab",
+      "name": "Destino: Laboratorio",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "asg-05",
+              "name": "area_asignada",
+              "value": "Responsable de Certificados y Admisiones",
+              "type": "string"
+            },
+            {
+              "id": "asg-06",
+              "name": "email_coordinador",
+              "value": "admisiones.certificados@uptc.edu.co",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-set-cert",
+      "name": "Destino: Certificado",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [900, 420]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.solicitudes_campus (\n  estudiante_id,\n  estudiante_nombre,\n  codigo_uptc,\n  email_institucional,\n  tipo_tramite,\n  asignatura_o_lab,\n  descripcion,\n  estado,\n  area_asignada,\n  request_id\n)\nVALUES (\n  NULLIF('{{ $json.estudiante_id }}', '')::uuid,\n  '{{ $json.estudiante_nombre }}',\n  '{{ $json.codigo_uptc }}',\n  '{{ $json.email_institucional }}',\n  '{{ $json.tipo_tramite }}',\n  '{{ $json.asignatura_o_lab }}',\n  '{{ $json.descripcion }}',\n  'Pendiente',\n  '{{ $json.area_asignada }}',\n  '{{ $json.request_id }}'::uuid\n)\nON CONFLICT (request_id) DO UPDATE SET\n  actualizado_en = now()\nRETURNING id, estudiante_nombre, tipo_tramite, estado, creado_en, area_asignada;"
+      },
+      "id": "node-supabase-insert",
+      "name": "Supabase / Postgres Insert",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1160, 300],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-db-campusaid",
+          "name": "Supabase PostgreSQL CampusAid"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "campusaid-notificaciones@uptc.edu.co",
+        "toEmail": "={{ $('Destino: ' + $json.tipo_tramite).item.json.email_coordinador }}, {{ $('Validación Reglas UPTC').item.json.email_institucional }}",
+        "subject": "=[CampusAid UPTC] Nueva Solicitud Registrada: {{ $json.tipo_tramite }} (Ref: {{ $json.id }})",
+        "html": "=<h2>CampusAid UPTC — Notificación Institucional</h2><p>Estimado/a <strong>{{ $json.estudiante_nombre }}</strong> y equipo de <strong>{{ $json.area_asignada }}</strong>,</p><p>Se ha registrado satisfactoriamente la siguiente solicitud en la mesa de ayuda:</p><ul><li><strong>ID de Radicado:</strong> {{ $json.id }}</li><li><strong>Tipo de Trámite:</strong> {{ $json.tipo_tramite }}</li><li><strong>Estado Inicial:</strong> {{ $json.estado }}</li><li><strong>Fecha:</strong> {{ $json.creado_en }}</li></ul><p>Puede consultar el avance desde el portal web con su usuario institucional.</p><hr/><small>Universidad Pedagógica y Tecnológica de Colombia - CampusAid 2026</small>"
+      },
+      "id": "node-email-notif",
+      "name": "Notificación por Correo",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1400, 300],
+      "credentials": {
+        "smtp": {
+          "id": "smtp-uptc-notificaciones",
+          "name": "SMTP UPTC Notificaciones"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"ok\",\n  \"solicitud_id\": \"{{ $('Supabase / Postgres Insert').item.json.id }}\",\n  \"tipo_tramite\": \"{{ $('Supabase / Postgres Insert').item.json.tipo_tramite }}\",\n  \"estado\": \"{{ $('Supabase / Postgres Insert').item.json.estado }}\",\n  \"area_asignada\": \"{{ $('Supabase / Postgres Insert').item.json.area_asignada }}\",\n  \"mensaje\": \"Solicitud registrada y notificada exitosamente mediante N8N.\"\n}",
+        "options": {}
+      },
+      "id": "node-respond-webhook",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1640, 300]
+    }
+  ],
+  "connections": {
+    "Webhook POST Solicitud": {
+      "main": [
+        [
+          {
+            "node": "Validación Reglas UPTC",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validación Reglas UPTC": {
+      "main": [
+        [
+          {
+            "node": "Switch Tipo Trámite",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch Tipo Trámite": {
+      "main": [
+        [
+          {
+            "node": "Destino: Tutoría",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Destino: Laboratorio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Destino: Certificado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Destino: Tutoría": {
+      "main": [
+        [
+          {
+            "node": "Supabase / Postgres Insert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Destino: Laboratorio": {
+      "main": [
+        [
+          {
+            "node": "Supabase / Postgres Insert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Destino: Certificado": {
+      "main": [
+        [
+          {
+            "node": "Supabase / Postgres Insert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase / Postgres Insert": {
+      "main": [
+        [
+          {
+            "node": "Notificación por Correo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notificación por Correo": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

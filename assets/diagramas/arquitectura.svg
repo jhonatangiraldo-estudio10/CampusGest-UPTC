@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 300" role="img" aria-label="Arquitectura de integración">
+<rect width="960" height="300" fill="#f6f8fc"/>
+<text x="40" y="48" font-family="Arial,sans-serif" font-size="24" font-weight="700" fill="#17345c">Arquitectura de integración</text>
+<defs><marker id="arr" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L9,3 L0,6 Z" fill="#2760a8"/></marker></defs>
+<rect x="40" y="112" rx="13" width="188" height="90" fill="white" stroke="#2b64a6" stroke-width="2"/>
+<text x="134.0" y="151.5" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="600" fill="#193e6c">Frontend</text>
+<text x="134.0" y="172.5" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="600" fill="#193e6c">CampusAid</text>
+<rect x="293" y="112" rx="13" width="166" height="90" fill="white" stroke="#2b64a6" stroke-width="2"/>
+<text x="376.0" y="151.5" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="600" fill="#193e6c">Backend</text>
+<text x="376.0" y="172.5" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="600" fill="#193e6c">autenticado</text>
+<rect x="530" y="112" rx="13" width="150" height="90" fill="white" stroke="#2b64a6" stroke-width="2"/>
+<text x="605.0" y="151.5" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="600" fill="#193e6c">N8N</text>
+<text x="605.0" y="172.5" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="600" fill="#193e6c">Webhook + Switch</text>
+<rect x="755" y="112" rx="13" width="165" height="90" fill="white" stroke="#2b64a6" stroke-width="2"/>
+<text x="837.5" y="151.5" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="600" fill="#193e6c">Supabase</text>
+<text x="837.5" y="172.5" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="600" fill="#193e6c">PostgreSQL + RLS</text>
+<line x1="228" y1="157" x2="286" y2="157" stroke="#2760a8" stroke-width="3" marker-end="url(#arr)"/>
+<line x1="459" y1="157" x2="523" y2="157" stroke="#2760a8" stroke-width="3" marker-end="url(#arr)"/>
+<line x1="680" y1="157" x2="748" y2="157" stroke="#2760a8" stroke-width="3" marker-end="url(#arr)"/>
+<text x="40" y="274" font-family="Arial,sans-serif" font-size="13" fill="#66748c">CampusAid UPTC · Caso 3 · Diagramas de referencia</text></svg>

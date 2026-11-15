@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 300" role="img" aria-label="Flujo de trabajo del equipo">
+<rect width="960" height="300" fill="#f6f8fc"/>
+<text x="40" y="48" font-family="Arial,sans-serif" font-size="24" font-weight="700" fill="#17345c">Flujo de trabajo del equipo</text>
+<defs><marker id="arr" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L9,3 L0,6 Z" fill="#2760a8"/></marker></defs>
+<rect x="40" y="112" rx="13" width="175" height="90" fill="white" stroke="#2b64a6" stroke-width="2"/>
+<text x="127.5" y="151.5" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="600" fill="#193e6c">Antigravity</text>
+<text x="127.5" y="172.5" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="600" fill="#193e6c">Frontend</text>
+<rect x="269" y="112" rx="13" width="175" height="90" fill="white" stroke="#2b64a6" stroke-width="2"/>
+<text x="356.5" y="151.5" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="600" fill="#193e6c">GitHub</text>
+<text x="356.5" y="172.5" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="600" fill="#193e6c">Rama feature</text>
+<rect x="500" y="112" rx="13" width="175" height="90" fill="white" stroke="#2b64a6" stroke-width="2"/>
+<text x="587.5" y="151.5" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="600" fill="#193e6c">Supabase</text>
+<text x="587.5" y="172.5" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="600" fill="#193e6c">+ N8N</text>
+<rect x="731" y="112" rx="13" width="175" height="90" fill="white" stroke="#2b64a6" stroke-width="2"/>
+<text x="818.5" y="151.5" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="600" fill="#193e6c">PR + Vercel</text>
+<text x="818.5" y="172.5" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="600" fill="#193e6c">+ evidencias</text>
+<line x1="215" y1="157" x2="262" y2="157" stroke="#2760a8" stroke-width="3" marker-end="url(#arr)"/>
+<line x1="444" y1="157" x2="493" y2="157" stroke="#2760a8" stroke-width="3" marker-end="url(#arr)"/>
+<line x1="675" y1="157" x2="724" y2="157" stroke="#2760a8" stroke-width="3" marker-end="url(#arr)"/>
+<text x="40" y="274" font-family="Arial,sans-serif" font-size="13" fill="#66748c">CampusAid UPTC · Caso 3 · Diagramas de referencia</text></svg>
