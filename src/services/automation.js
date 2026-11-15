@@ -1,22 +1,20 @@
 /**
  * Servicio de Automatización Frontend
- * Se comunica con la ruta segura /api/solicitudes (Vercel / Backend).
- * NUNCA llama directamente al webhook privado de N8N desde el navegador.
+ * Se comunica exclusivamente con el endpoint seguro /api/solicitudes (Vercel Serverless / Backend).
+ * NUNCA contacta webhooks privados ni escribe silenciosamente en almacenamiento local falso.
  */
-
-import { addLocalSolicitud } from './supabase.js';
 
 export async function enviarSolicitud(formData, user) {
   const requestId = formData.request_id || crypto.randomUUID();
 
   const payload = {
     estudiante_id: user?.id || null,
-    estudiante_nombre: formData.estudiante_nombre,
-    codigo_uptc: formData.codigo_uptc,
-    email_institucional: formData.email_institucional,
+    estudiante_nombre: formData.estudiante_nombre?.trim(),
+    codigo_uptc: String(formData.codigo_uptc || '').trim(),
+    email_institucional: formData.email_institucional?.trim().toLowerCase(),
     tipo_tramite: formData.tipo_tramite,
-    asignatura_o_lab: formData.asignatura_o_lab,
-    descripcion: formData.descripcion,
+    asignatura_o_lab: (formData.asignatura_o_lab || '').trim(),
+    descripcion: formData.descripcion?.trim(),
     request_id: requestId
   };
 
@@ -30,37 +28,28 @@ export async function enviarSolicitud(formData, user) {
       body: JSON.stringify(payload)
     });
 
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-      throw new Error(data.mensaje || `Error ${res.status} al procesar la solicitud`);
+      return {
+        success: false,
+        status: res.status,
+        codigo: data.codigo || 'ERROR_PETICION',
+        error: data.mensaje || `Error HTTP ${res.status} al procesar la solicitud.`
+      };
     }
-
-    // Registra en el almacén sincronizado para reflejo visual inmediato en UI
-    addLocalSolicitud({
-      id: data.solicitud_id || requestId,
-      estudiante_id: payload.estudiante_id,
-      estudiante_nombre: payload.estudiante_nombre,
-      codigo_uptc: payload.codigo_uptc,
-      email_institucional: payload.email_institucional,
-      tipo_tramite: payload.tipo_tramite,
-      asignatura_o_lab: payload.asignatura_o_lab,
-      descripcion: payload.descripcion,
-      estado: data.estado || 'Pendiente',
-      area_asignada: data.area_asignada || 'Área asignada por N8N',
-      request_id: requestId,
-      creado_en: new Date().toISOString()
-    });
 
     return {
       success: true,
+      status: res.status,
       data
     };
   } catch (error) {
-    console.error('[AutomationService] Error al enviar solicitud:', error);
     return {
       success: false,
-      error: error.message
+      status: 0,
+      codigo: 'ERROR_CONEXION',
+      error: 'No se pudo contactar el servidor de la API (/api/solicitudes). Verifique su conexión de red.'
     };
   }
 }

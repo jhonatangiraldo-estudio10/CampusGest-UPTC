@@ -1,65 +1,81 @@
 import React, { useState } from 'react';
-import { User, Lock, Mail, Shield, CheckCircle2, AlertCircle } from 'lucide-react';
+import { User, Lock, Mail, Shield, AlertCircle, Info, KeyRound } from 'lucide-react';
+import { isConfigured } from '../services/supabase';
+import { loginWithSupabase, registerWithSupabase, isDemoModeAvailable, getLocalDemoUser } from '../services/auth';
 
-export default function AuthModal({ isOpen, onClose, onLogin }) {
+export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
   const [isRegister, setIsRegister] = useState(false);
   const [formData, setFormData] = useState({
     nombre: '',
     codigo: '',
     email: '',
-    password: '',
-    rol: 'estudiante'
+    password: ''
   });
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [infoMessage, setInfoMessage] = useState(null);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+    setInfoMessage(null);
 
-    // Validar correo institucional
-    if (!formData.email.endsWith('@uptc.edu.co')) {
-      setError('El correo debe terminar en @uptc.edu.co.');
+    // Validación básica de frontend
+    if (!formData.email.toLowerCase().endsWith('@uptc.edu.co')) {
+      setError('El correo debe pertenecer exclusivamente al dominio @uptc.edu.co.');
+      return;
+    }
+
+    if (!formData.password || formData.password.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres.');
       return;
     }
 
     if (isRegister && !/^[0-9]{9}$/.test(formData.codigo)) {
-      setError('El código estudiantil debe contener 9 dígitos.');
+      setError('El código estudiantil debe contener exactamente 9 dígitos numéricos.');
       return;
     }
 
-    // Login exitoso
-    onLogin({
-      id: crypto.randomUUID(),
-      nombre: formData.nombre || (formData.email.split('@')[0].replace('.', ' ').toUpperCase()),
-      codigo: formData.codigo || '202410045',
-      email: formData.email,
-      rol: formData.rol
-    });
+    if (!isConfigured) {
+      setError('Servicio de autenticación no configurado. El administrador debe integrar las credenciales de Supabase en .env.');
+      return;
+    }
 
-    onClose();
+    setLoading(true);
+    if (isRegister) {
+      const res = await registerWithSupabase({
+        email: formData.email,
+        password: formData.password,
+        nombre: formData.nombre,
+        codigo: formData.codigo
+      });
+      setLoading(false);
+      if (res.success) {
+        setInfoMessage(res.message);
+        setIsRegister(false);
+      } else {
+        setError(res.error);
+      }
+    } else {
+      const res = await loginWithSupabase(formData.email, formData.password);
+      setLoading(false);
+      if (res.success) {
+        onLoginSuccess(res.user);
+        onClose();
+      } else {
+        setError(res.error);
+      }
+    }
   };
 
-  const loginRapido = (rol) => {
-    if (rol === 'estudiante') {
-      onLogin({
-        id: 'user-demo-estudiante-1',
-        nombre: 'Laura Marcela Gómez',
-        codigo: '202410045',
-        email: 'laura.gomez@uptc.edu.co',
-        rol: 'estudiante'
-      });
-    } else {
-      onLogin({
-        id: 'user-demo-coordinador-1',
-        nombre: 'Dr. Roberto Moreno',
-        codigo: '100000001',
-        email: 'coordinacion.academica@uptc.edu.co',
-        rol: 'coordinador_general'
-      });
+  const handleDemoAccess = (tipo) => {
+    const demoUser = getLocalDemoUser(tipo);
+    if (demoUser) {
+      onLoginSuccess(demoUser);
+      onClose();
     }
-    onClose();
   };
 
   return (
@@ -68,6 +84,7 @@ export default function AuthModal({ isOpen, onClose, onLogin }) {
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-slate-400 hover:text-white p-1"
+          aria-label="Cerrar modal"
         >
           ✕
         </button>
@@ -84,31 +101,59 @@ export default function AuthModal({ isOpen, onClose, onLogin }) {
           </p>
         </div>
 
-        {/* Accesos Rápidos para Evaluación del Taller */}
-        <div className="mb-6 p-3 bg-slate-800/80 rounded-xl border border-slate-700 text-xs">
-          <span className="text-slate-400 font-semibold block mb-2">Perfiles de prueba rápida:</span>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => loginRapido('estudiante')}
-              className="bg-slate-700 hover:bg-amber-400 hover:text-slate-950 text-slate-200 py-1.5 px-3 rounded-lg font-medium transition text-[11px]"
-            >
-              Entrar como Estudiante
-            </button>
-            <button
-              type="button"
-              onClick={() => loginRapido('coordinador')}
-              className="bg-slate-700 hover:bg-amber-400 hover:text-slate-950 text-slate-200 py-1.5 px-3 rounded-lg font-medium transition text-[11px]"
-            >
-              Entrar como Coordinador
-            </button>
+        {/* Notificación si Supabase no está configurado */}
+        {!isConfigured && (
+          <div className="mb-5 p-3.5 bg-amber-950/40 border border-amber-500/40 rounded-xl text-amber-200 text-xs flex items-start gap-2.5">
+            <Info className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <span className="font-semibold block text-amber-300">Conexión a Supabase Auth Pendiente</span>
+              <p className="mt-0.5 text-amber-200/80">
+                El backend de autenticación aún no tiene credenciales configuradas en las variables de entorno.
+              </p>
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Modo Demostración solo visible en DEV si está explícitamente activado */}
+        {isDemoModeAvailable() && (
+          <div className="mb-5 p-3 bg-slate-800/90 rounded-xl border border-dashed border-amber-400/50 text-xs">
+            <div className="flex items-center gap-1.5 text-amber-400 font-bold mb-1.5">
+              <KeyRound className="w-3.5 h-3.5" />
+              <span>Modo Demostración Local [DEV ONLY]</span>
+            </div>
+            <p className="text-[11px] text-slate-400 mb-2">
+              Uso restringido al entorno local de desarrollo para revisión visual.
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => handleDemoAccess('estudiante')}
+                className="bg-slate-700 hover:bg-amber-400 hover:text-slate-950 text-slate-200 py-1 px-2.5 rounded text-[11px] font-medium transition"
+              >
+                Simular Estudiante
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDemoAccess('coordinador')}
+                className="bg-slate-700 hover:bg-amber-400 hover:text-slate-950 text-slate-200 py-1 px-2.5 rounded text-[11px] font-medium transition"
+              >
+                Simular Coordinador
+              </button>
+            </div>
+          </div>
+        )}
 
         {error && (
           <div className="bg-rose-950/60 border border-rose-500/50 text-rose-200 text-xs p-3 rounded-xl mb-4 flex items-center gap-2">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             <span>{error}</span>
+          </div>
+        )}
+
+        {infoMessage && (
+          <div className="bg-emerald-950/60 border border-emerald-500/50 text-emerald-200 text-xs p-3 rounded-xl mb-4 flex items-center gap-2">
+            <Info className="w-4 h-4 flex-shrink-0" />
+            <span>{infoMessage}</span>
           </div>
         )}
 
@@ -166,32 +211,23 @@ export default function AuthModal({ isOpen, onClose, onLogin }) {
             />
           </div>
 
-          {!isRegister && (
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Rol a Asumir</label>
-              <select
-                value={formData.rol}
-                onChange={(e) => setFormData(p => ({ ...p, rol: e.target.value }))}
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-amber-400"
-              >
-                <option value="estudiante">Estudiante UPTC</option>
-                <option value="coordinador_general">Coordinador de Mesa de Ayuda</option>
-              </select>
-            </div>
-          )}
-
           <button
             type="submit"
-            className="w-full bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider transition mt-2 shadow-lg shadow-amber-400/20"
+            disabled={loading || !isConfigured}
+            className="w-full bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider transition mt-2 shadow-lg shadow-amber-400/20 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isRegister ? 'Crear Cuenta Estudiante' : 'Iniciar Sesión'}
+            {loading ? 'Procesando...' : (isRegister ? 'Registrar Estudiante' : 'Iniciar Sesión')}
           </button>
         </form>
 
         <div className="text-center mt-4">
           <button
             type="button"
-            onClick={() => setIsRegister(!isRegister)}
+            onClick={() => {
+              setIsRegister(!isRegister);
+              setError(null);
+              setInfoMessage(null);
+            }}
             className="text-xs text-amber-400 hover:underline"
           >
             {isRegister ? '¿Ya tiene cuenta? Iniciar Sesión' : '¿Nuevo estudiante? Regístrese aquí'}

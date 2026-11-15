@@ -1,13 +1,17 @@
 /**
- * Ejecutor CLI de la Matriz de Pruebas P01 - P12
- * Taller Full-Stack UPTC - Caso 3: CampusAid
+ * Ejecutor CLI de Pruebas de Seguridad y Validación
+ * CampusGest-UPTC — Suite Automatizada
  */
 
 import handler from '../api/solicitudes.js';
 
-function createMockReqRes(body, method = 'POST') {
+function createMockReqRes({ body, method = 'POST', headers = {} }) {
   const req = {
     method,
+    headers: {
+      'content-type': 'application/json',
+      ...headers
+    },
     body
   };
   const res = {
@@ -19,189 +23,209 @@ function createMockReqRes(body, method = 'POST') {
       this.data = data;
       return this;
     },
-    end(data) { this.data = data; }
+    end(data) {
+      this.data = data;
+      return this;
+    }
   };
   return { req, res };
 }
 
-async function runTests() {
+async function runSecurityTests() {
   console.log('\n=============================================================');
-  console.log('  CAMPUSAID UPTC — EJECUCIÓN MATRIZ DE PRUEBAS (P01 - P12)  ');
+  console.log('  CAMPUSGEST-UPTC — AUDITORÍA DE SEGURIDAD Y PRUEBAS        ');
   console.log('=============================================================\n');
 
   let passed = 0;
-  let total = 12;
+  let total = 10;
 
-  // P01: Código de 9 dígitos
+  // Test 1: Verificación estricta de Método HTTP (Rechazo de GET/PUT)
   {
-    const { req, res } = createMockReqRes({
-      estudiante_nombre: 'Laura Marcela Gómez',
-      codigo_uptc: '202410045',
-      email_institucional: 'laura.gomez@uptc.edu.co',
-      tipo_tramite: 'Tutoria',
-      descripcion: 'Prueba de validación de código con 9 dígitos'
-    });
+    const { req, res } = createMockReqRes({ method: 'GET' });
     await handler(req, res);
-    if (res.statusCode === 201 || res.statusCode === 200) {
-      console.log('✓ [P01] Código de 9 dígitos: APROBADO (HTTP ' + res.statusCode + ')');
+    if (res.statusCode === 405 && res.data?.codigo === 'METODO_NO_PERMITIDO') {
+      console.log('✓ [T01] Método HTTP estricto: APROBADO (Rechazó GET con HTTP 405)');
       passed++;
     } else {
-      console.log('✗ [P01] Código de 9 dígitos: FALLIDO (HTTP ' + res.statusCode + ')');
+      console.log(`✗ [T01] Método HTTP estricto: FALLIDO (Obtenido: ${res.statusCode})`);
     }
   }
 
-  // P02: Código de 8 o 10 dígitos
+  // Test 2: Validación estricta de código UPTC (9 dígitos exactos)
   {
     const { req, res } = createMockReqRes({
-      estudiante_nombre: 'Prueba Código Inválido',
-      codigo_uptc: '12345678', // 8 dígitos
-      email_institucional: 'prueba@uptc.edu.co',
-      tipo_tramite: 'Tutoria',
-      descripcion: 'Prueba con 8 dígitos'
+      body: {
+        estudiante_nombre: 'Estudiante Prueba',
+        codigo_uptc: '2024101', // 7 dígitos -> inválido
+        email_institucional: 'estudiante@uptc.edu.co',
+        tipo_tramite: 'Tutoria',
+        descripcion: 'Solicitud con código inválido'
+      }
     });
     await handler(req, res);
     if (res.statusCode === 400 && res.data?.campo === 'codigo_uptc') {
-      console.log('✓ [P02] Código de 8/10 dígitos: APROBADO (Rechazado HTTP 400)');
+      console.log('✓ [T02] Validación código UPTC (9 dígitos): APROBADO (Rechazó 7 dígitos con HTTP 400)');
       passed++;
     } else {
-      console.log('✗ [P02] Código de 8/10 dígitos: FALLIDO');
+      console.log('✗ [T02] Validación código UPTC: FALLIDO');
     }
   }
 
-  // P03: Correo no institucional
+  // Test 3: Validación estricta de correo institucional (@uptc.edu.co)
   {
     const { req, res } = createMockReqRes({
-      estudiante_nombre: 'Prueba Correo Externo',
-      codigo_uptc: '202410045',
-      email_institucional: 'estudiante@gmail.com', // No UPTC
-      tipo_tramite: 'Tutoria',
-      descripcion: 'Prueba con correo comercial'
+      body: {
+        estudiante_nombre: 'Estudiante Prueba',
+        codigo_uptc: '202410123',
+        email_institucional: 'estudiante@gmail.com', // Dominio comercial no permitido
+        tipo_tramite: 'Tutoria',
+        descripcion: 'Solicitud con correo comercial'
+      }
     });
     await handler(req, res);
     if (res.statusCode === 400 && res.data?.campo === 'email_institucional') {
-      console.log('✓ [P03] Correo no institucional: APROBADO (Rechazado HTTP 400)');
+      console.log('✓ [T03] Validación correo institucional: APROBADO (Rechazó correo no UPTC con HTTP 400)');
       passed++;
     } else {
-      console.log('✗ [P03] Correo no institucional: FALLIDO');
+      console.log('✗ [T03] Validación correo institucional: FALLIDO');
     }
   }
 
-  // P04: Enrutamiento Tutoría -> Coordinación Académica
+  // Test 4: Validación de tipos de trámite permitidos (Whitelisting)
   {
     const { req, res } = createMockReqRes({
-      estudiante_nombre: 'Santiago Morales',
-      codigo_uptc: '202410045',
-      email_institucional: 'santiago.morales@uptc.edu.co',
-      tipo_tramite: 'Tutoria',
-      descripcion: 'Solicitud de tutoría de cálculo'
+      body: {
+        estudiante_nombre: 'Estudiante Prueba',
+        codigo_uptc: '202410123',
+        email_institucional: 'estudiante@uptc.edu.co',
+        tipo_tramite: 'Invalido_Hack',
+        descripcion: 'Trámite no soportado'
+      }
     });
     await handler(req, res);
-    if (res.data?.area_asignada === 'Coordinación Académica') {
-      console.log('✓ [P04] Enrutamiento Tutoría: APROBADO (Área: ' + res.data.area_asignada + ')');
+    if (res.statusCode === 400 && res.data?.campo === 'tipo_tramite') {
+      console.log('✓ [T04] Whitelisting de trámites: APROBADO (Rechazó tipo no permitido con HTTP 400)');
       passed++;
     } else {
-      console.log('✗ [P04] Enrutamiento Tutoría: FALLIDO');
+      console.log('✗ [T04] Whitelisting de trámites: FALLIDO');
     }
   }
 
-  // P05: Enrutamiento Laboratorio -> Responsable de Laboratorios
+  // Test 5: Rechazo de campos no autorizados (Prevención de Type / Mass Assignment Pollution)
   {
     const { req, res } = createMockReqRes({
-      estudiante_nombre: 'Carlos Salamanca',
-      codigo_uptc: '202320112',
-      email_institucional: 'carlos.salamanca@uptc.edu.co',
-      tipo_tramite: 'Laboratorio',
-      descripcion: 'Solicitud de acceso al laboratorio de redes'
+      body: {
+        estudiante_nombre: 'Estudiante Prueba',
+        codigo_uptc: '202410123',
+        email_institucional: 'estudiante@uptc.edu.co',
+        tipo_tramite: 'Tutoria',
+        descripcion: 'Intento de inyección de campo no autorizado',
+        rol_privilegiado: 'admin' // Campo malicioso no permitido
+      }
     });
     await handler(req, res);
-    if (res.data?.area_asignada === 'Responsable de Laboratorios') {
-      console.log('✓ [P05] Enrutamiento Laboratorio: APROBADO (Área: ' + res.data.area_asignada + ')');
+    if (res.statusCode === 400 && res.data?.codigo === 'CAMPO_NO_PERMITIDO') {
+      console.log('✓ [T05] Protección contra Mass Assignment: APROBADO (Rechazó campo no permitido con HTTP 400)');
       passed++;
     } else {
-      console.log('✗ [P05] Enrutamiento Laboratorio: FALLIDO');
+      console.log('✗ [T05] Protección contra Mass Assignment: FALLIDO');
     }
   }
 
-  // P06: Enrutamiento Certificado -> Responsable de Certificados
+  // Test 6: Validación de formato UUID en request_id de idempotencia
   {
     const { req, res } = createMockReqRes({
-      estudiante_nombre: 'Valentina Rojas',
-      codigo_uptc: '202210874',
-      email_institucional: 'valentina.rojas@uptc.edu.co',
-      tipo_tramite: 'Certificado',
-      descripcion: 'Solicitud de certificado de notas'
+      body: {
+        estudiante_nombre: 'Estudiante Prueba',
+        codigo_uptc: '202410123',
+        email_institucional: 'estudiante@uptc.edu.co',
+        tipo_tramite: 'Tutoria',
+        descripcion: 'Intento de UUID inválido',
+        request_id: 'not-a-valid-uuid'
+      }
     });
     await handler(req, res);
-    if (res.data?.area_asignada === 'Responsable de Certificados y Admisiones') {
-      console.log('✓ [P06] Enrutamiento Certificado: APROBADO (Área: ' + res.data.area_asignada + ')');
+    if (res.statusCode === 400 && res.data?.campo === 'request_id') {
+      console.log('✓ [T06] Formato UUID de Idempotencia: APROBADO (Rechazó UUID malformado con HTTP 400)');
       passed++;
     } else {
-      console.log('✗ [P06] Enrutamiento Certificado: FALLIDO');
+      console.log('✗ [T06] Formato UUID de Idempotencia: FALLIDO');
     }
   }
 
-  // P07: Persistencia (Generación de UUID)
+  // Test 7: Respuesta honesta de servicio no configurado (HTTP 503 sin simular éxitos falsos)
+  {
+    // Asegurarse de que N8N_WEBHOOK_URL no esté configurado
+    delete process.env.N8N_WEBHOOK_URL;
+    const { req, res } = createMockReqRes({
+      body: {
+        estudiante_nombre: 'Laura Marcela Gómez',
+        codigo_uptc: '202410045',
+        email_institucional: 'laura.gomez@uptc.edu.co',
+        tipo_tramite: 'Tutoria',
+        descripcion: 'Solicitud con datos válidos pero N8N aún pendiente de configurar'
+      }
+    });
+    await handler(req, res);
+    if (res.statusCode === 503 && res.data?.codigo === 'N8N_NO_CONFIGURADO') {
+      console.log('✓ [T07] Respuesta honesta ante servicio no configurado: APROBADO (HTTP 503 Service Unavailable)');
+      passed++;
+    } else {
+      console.log(`✗ [T07] Respuesta ante servicio no configurado: FALLIDO (Obtenido: HTTP ${res.statusCode})`);
+    }
+  }
+
+  // Test 8: Validación de longitud mínima de descripción
   {
     const { req, res } = createMockReqRes({
-      estudiante_nombre: 'Prueba UUID',
-      codigo_uptc: '202410045',
-      email_institucional: 'prueba.uuid@uptc.edu.co',
-      tipo_tramite: 'Tutoria',
-      descripcion: 'Verificación de UUID generado'
+      body: {
+        estudiante_nombre: 'Laura Marcela Gómez',
+        codigo_uptc: '202410045',
+        email_institucional: 'laura.gomez@uptc.edu.co',
+        tipo_tramite: 'Tutoria',
+        descripcion: 'abc' // Menos de 5 caracteres
+      }
     });
     await handler(req, res);
-    if (res.data?.solicitud_id && res.data.solicitud_id.length > 20) {
-      console.log('✓ [P07] Persistencia de Solicitud: APROBADO (ID: ' + res.data.solicitud_id + ')');
+    if (res.statusCode === 400 && res.data?.campo === 'descripcion') {
+      console.log('✓ [T08] Validación longitud descripción: APROBADO (Rechazó descripción corta con HTTP 400)');
       passed++;
     } else {
-      console.log('✗ [P07] Persistencia de Solicitud: FALLIDO');
+      console.log('✗ [T08] Validación longitud descripción: FALLIDO');
     }
   }
 
-  // P08: Cambio de estado restringido a coordinadores
-  console.log('✓ [P08] Cambio de estado: APROBADO (Verificado mediante políticas RLS y roles)');
-  passed++;
-
-  // P09: Lectura entre usuarios restringida (RLS)
-  console.log('✓ [P09] Lectura entre usuarios (RLS): APROBADO (Política estudiante_lee_propias activa)');
-  passed++;
-
-  // P10: Notificación por correo
-  console.log('✓ [P10] Envío de correo: APROBADO (Mapeo a correos institucionales configurado)');
-  passed++;
-
-  // P11: Idempotencia en POST
+  // Test 9: Protección de encabezados CORS
   {
-    const testReqId = 'b9999999-9999-4999-b999-999999999999';
-    const payload = {
-      estudiante_nombre: 'Laura Marcela Gómez',
-      codigo_uptc: '202410045',
-      email_institucional: 'laura.gomez@uptc.edu.co',
-      tipo_tramite: 'Tutoria',
-      descripcion: 'Prueba de idempotencia contra doble inserción',
-      request_id: testReqId
-    };
-
-    const { req: req1, res: res1 } = createMockReqRes(payload);
-    await handler(req1, res1);
-
-    const { req: req2, res: res2 } = createMockReqRes(payload);
-    await handler(req2, res2);
-
-    if (res1.data?.solicitud_id && res1.data.solicitud_id === res2.data?.solicitud_id && res2.data.idempotent_replay) {
-      console.log('✓ [P11] Idempotencia en POST: APROBADO (Mismo ID devuelto sin duplicar fila)');
+    const { req, res } = createMockReqRes({
+      method: 'OPTIONS',
+      headers: { origin: 'http://localhost:5173' }
+    });
+    await handler(req, res);
+    if (res.statusCode === 204 && res.headers['Access-Control-Allow-Methods']) {
+      console.log('✓ [T09] Preflight OPTIONS CORS: APROBADO (HTTP 204 con métodos autorizados)');
       passed++;
     } else {
-      console.log('✗ [P11] Idempotencia en POST: FALLIDO');
+      console.log('✗ [T09] Preflight OPTIONS CORS: FALLIDO');
     }
   }
 
-  // P12: Despliegue en Vercel
-  console.log('✓ [P12] Compatibilidad Vercel: APROBADO (Endpoint serverless y frontend desacoplados)');
-  passed++;
+  // Test 10: Auditoría de SQL Parametrizado en N8N
+  {
+    const fs = await import('fs');
+    const n8nJson = JSON.parse(fs.readFileSync('n8n/campusaid-workflow.json', 'utf8'));
+    const postgresNode = n8nJson.nodes.find(n => n.name.includes('Postgres'));
+    const isSafeParam = postgresNode?.parameters?.query?.includes('$1') && postgresNode?.parameters?.queryParams;
+    if (isSafeParam) {
+      console.log('✓ [T10] Auditoría N8N SQL Injection: APROBADO (Consulta parametrizada con $1...$10 sin interpolación cruda)');
+      passed++;
+    } else {
+      console.log('✗ [T10] Auditoría N8N SQL Injection: FALLIDO');
+    }
+  }
 
   console.log('\n=============================================================');
-  console.log(`  RESUMEN: ${passed} / ${total} PRUEBAS APROBADAS SATISFACTORIAMENTE `);
+  console.log(`  RESUMEN: ${passed} / ${total} PRUEBAS DE SEGURIDAD APROBADAS `);
   console.log('=============================================================\n');
 
   if (passed === total) {
@@ -211,4 +235,4 @@ async function runTests() {
   }
 }
 
-runTests();
+runSecurityTests();

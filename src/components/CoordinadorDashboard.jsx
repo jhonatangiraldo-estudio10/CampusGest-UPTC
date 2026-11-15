@@ -1,27 +1,45 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, CheckCircle2, Clock, XCircle, RefreshCw, Send, AlertTriangle } from 'lucide-react';
-import { fetchSolicitudes, updateSolicitudEstado } from '../services/supabase';
+import { ShieldCheck, ShieldAlert, CheckCircle2, Clock, XCircle, RefreshCw, Send, AlertTriangle, Lock } from 'lucide-react';
+import { fetchSolicitudes, updateSolicitudEstado, isConfigured } from '../services/supabase';
 
-export default function CoordinadorDashboard({ user }) {
+export default function CoordinadorDashboard({ user, onOpenAuth }) {
   const [solicitudes, setSolicitudes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [errorInfo, setErrorInfo] = useState(null);
+  const [isDemoData, setIsDemoData] = useState(false);
+
   const [selected, setSelected] = useState(null);
   const [nuevoEstado, setNuevoEstado] = useState('En revisión');
   const [observacion, setObservacion] = useState('');
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState(null);
 
+  // Verificación estricta de autorización de rol
+  const isAuthorized = user && (user.rol?.startsWith('coordinador') || user.rol === 'admin');
+
   const loadData = async () => {
+    if (!isAuthorized) {
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
-    // Coordinador ve todas las solicitudes
-    const { data } = await fetchSolicitudes({ rol: 'coordinador_general' });
-    if (data) setSolicitudes(data);
+    setErrorInfo(null);
+    const { data, error, isDemo } = await fetchSolicitudes(user);
+    setIsDemoData(Boolean(isDemo));
+
+    if (error) {
+      setErrorInfo(error.message);
+      setSolicitudes([]);
+    } else if (data) {
+      setSolicitudes(data);
+    }
     setLoading(false);
   };
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [user]);
 
   const handleUpdate = async () => {
     if (!selected) return;
@@ -29,15 +47,42 @@ export default function CoordinadorDashboard({ user }) {
     setFeedback(null);
     const res = await updateSolicitudEstado(selected.id, nuevoEstado, observacion);
     setSaving(false);
-    if (!res.error) {
-      setFeedback('¡Estado de la solicitud actualizado correctamente!');
+
+    if (res.error) {
+      setFeedback({ tipo: 'error', mensaje: res.error.message || 'Error al actualizar estado.' });
+    } else {
+      setFeedback({ tipo: 'success', mensaje: 'Estado de la solicitud actualizado en base de datos.' });
       loadData();
       setSelected(null);
       setObservacion('');
-    } else {
-      setFeedback('Error al actualizar: ' + res.error.message);
     }
   };
+
+  // 1. Caso: Usuario no autenticado o sin rol de coordinador
+  if (!user || !isAuthorized) {
+    return (
+      <div className="max-w-3xl mx-auto bg-slate-800/80 border border-slate-700/80 rounded-2xl p-8 text-center backdrop-blur-sm shadow-xl">
+        <div className="w-14 h-14 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto mb-4 border border-rose-500/30">
+          <ShieldAlert className="w-7 h-7" />
+        </div>
+        <h3 className="text-xl font-bold text-white">Acceso Denegado · Área Administrativa</h3>
+        <p className="text-sm text-slate-400 mt-2 max-w-md mx-auto">
+          La mesa de coordinación y gestión de trámites requiere una cuenta institucional con rol asignado de coordinador o administrador.
+        </p>
+        <div className="mt-4 text-xs font-mono text-slate-500 bg-slate-900/60 p-2.5 rounded-lg max-w-sm mx-auto border border-slate-800">
+          Rol actual: {user ? user.rol : 'No autenticado'}
+        </div>
+        {!user && (
+          <button
+            onClick={onOpenAuth}
+            className="mt-6 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold px-6 py-2.5 rounded-xl text-xs uppercase tracking-wider transition shadow-lg shadow-amber-400/20"
+          >
+            Iniciar Sesión con Cuenta Autorizada
+          </button>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -49,11 +94,18 @@ export default function CoordinadorDashboard({ user }) {
             <ShieldCheck className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-              Mesa de Coordinación y Gestión (Caso 3)
-            </h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+                Mesa de Coordinación y Gestión Académica
+              </h2>
+              {isDemoData && (
+                <span className="bg-amber-500/20 text-amber-300 text-[11px] font-mono font-semibold px-2 py-0.5 rounded border border-amber-500/30">
+                  Modo Demo Local
+                </span>
+              )}
+            </div>
             <p className="text-sm text-slate-400">
-              Control de estados y atención de solicitudes clasificadas por N8N.
+              Sesión autorizada: <span className="text-amber-400 font-mono">{user.nombre}</span> ({user.rol})
             </p>
           </div>
         </div>
@@ -66,18 +118,48 @@ export default function CoordinadorDashboard({ user }) {
         </button>
       </div>
 
-      {feedback && (
-        <div className="p-4 bg-emerald-950/60 border border-emerald-500/50 rounded-xl text-emerald-200 text-sm flex items-center justify-between">
-          <span>{feedback}</span>
-          <button onClick={() => setFeedback(null)} className="text-emerald-400 font-bold ml-4">✕</button>
+      {/* Notificación si Supabase no está configurado */}
+      {!isConfigured && !isDemoData && (
+        <div className="p-4 bg-amber-950/40 border border-amber-500/40 rounded-xl text-amber-200 text-xs flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <span className="font-bold text-amber-300 block">Conexión a Base de Datos Supabase Pendiente</span>
+            <p className="mt-0.5 text-amber-200/90">
+              Las credenciales de Supabase deben ser provistas en las variables de entorno para consultar y actualizar los trámites reales con RLS.
+            </p>
+          </div>
         </div>
       )}
 
-      {/* Grid de Solicitudes para Gestión */}
+      {feedback && (
+        <div className={`p-4 rounded-xl text-xs flex items-center justify-between border ${
+          feedback.tipo === 'success'
+            ? 'bg-emerald-950/60 border-emerald-500/50 text-emerald-200'
+            : 'bg-rose-950/60 border-rose-500/50 text-rose-200'
+        }`}>
+          <span>{feedback.mensaje}</span>
+          <button onClick={() => setFeedback(null)} className="font-bold ml-4">✕</button>
+        </div>
+      )}
+
+      {errorInfo && (
+        <div className="p-4 bg-rose-950/50 border border-rose-500/40 rounded-xl text-rose-200 text-xs flex items-center gap-3">
+          <AlertTriangle className="w-5 h-5 text-rose-400 flex-shrink-0" />
+          <span>{errorInfo}</span>
+        </div>
+      )}
+
+      {/* Grid de Solicitudes */}
       {loading ? (
         <div className="text-center py-16 bg-slate-800/40 rounded-2xl border border-slate-800">
           <RefreshCw className="w-8 h-8 text-amber-400 animate-spin mx-auto mb-3" />
-          <p className="text-sm text-slate-400">Cargando solicitudes para gestión...</p>
+          <p className="text-sm text-slate-400">Cargando solicitudes autorizadas...</p>
+        </div>
+      ) : solicitudes.length === 0 ? (
+        <div className="text-center py-16 bg-slate-800/40 rounded-2xl border border-slate-800">
+          <Clock className="w-10 h-10 text-slate-500 mx-auto mb-3" />
+          <p className="text-base font-semibold text-slate-300">No hay solicitudes pendientes de atención</p>
+          <p className="text-xs text-slate-400 mt-1">Los trámites asignados por N8N aparecerán en esta vista.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -91,7 +173,7 @@ export default function CoordinadorDashboard({ user }) {
               }`}
             >
               <div className="flex items-start justify-between gap-2 mb-3">
-                <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-900 border border-slate-700 text-amber-400">
+                <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-900 border border-slate-700 text-amber-400 font-mono">
                   {s.tipo_tramite}
                 </span>
                 <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${
@@ -137,12 +219,12 @@ export default function CoordinadorDashboard({ user }) {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">Observación para el Estudiante:</label>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">Observación Oficial para el Estudiante:</label>
                     <textarea
                       rows={2}
                       value={observacion}
                       onChange={(e) => setObservacion(e.target.value)}
-                      placeholder="Indique fecha de atención, horario, aula o motivo de resolución..."
+                      placeholder="Indique detalles de atención, horario, aula o motivo de resolución..."
                       className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-amber-400"
                     />
                   </div>
@@ -150,7 +232,7 @@ export default function CoordinadorDashboard({ user }) {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={handleUpdate}
-                      disabled={saving}
+                      disabled={saving || !isConfigured}
                       className="flex-1 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold py-2 rounded-lg text-xs uppercase tracking-wider transition disabled:opacity-50"
                     >
                       {saving ? 'Guardando...' : 'Confirmar Cambio de Estado'}

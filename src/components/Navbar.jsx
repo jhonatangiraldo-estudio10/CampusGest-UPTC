@@ -1,10 +1,12 @@
 import React from 'react';
-import { School, User, LogOut, CheckCircle, ShieldCheck, Activity, Terminal } from 'lucide-react';
+import { School, User, LogOut, ShieldAlert, Activity, Terminal, ShieldCheck, Database } from 'lucide-react';
 import { isConfigured } from '../services/supabase';
 
-export default function Navbar({ activeTab, setActiveTab, user, onOpenAuth, onLogout }) {
+export default function Navbar({ activeTab, setActiveTab, user, authLoading, onOpenAuth, onLogout }) {
+  const isCoordinador = user && (user.rol?.startsWith('coordinador') || user.rol === 'admin');
+
   return (
-    <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800">
+    <header className="sticky top-0 z-40 bg-slate-900/95 backdrop-blur-md border-b border-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           
@@ -15,12 +17,12 @@ export default function Navbar({ activeTab, setActiveTab, user, onOpenAuth, onLo
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-bold text-lg text-white tracking-tight">CampusAid</span>
+                <span className="font-bold text-lg text-white tracking-tight">CampusGest</span>
                 <span className="bg-amber-400/20 text-amber-400 text-xs font-semibold px-2 py-0.5 rounded-full border border-amber-400/30">
                   UPTC
                 </span>
               </div>
-              <p className="text-xs text-slate-400 hidden sm:block">Mesa de Ayuda y Tutorías Inteligentes · Caso 3</p>
+              <p className="text-[11px] text-slate-400 hidden sm:block">Mesa de Ayuda y Gestión de Solicitudes Académicas</p>
             </div>
           </div>
 
@@ -34,7 +36,7 @@ export default function Navbar({ activeTab, setActiveTab, user, onOpenAuth, onLo
                   : 'text-slate-300 hover:text-white hover:bg-slate-800'
               }`}
             >
-              Nuevo Trámite
+              Radicar Trámite
             </button>
             
             <button
@@ -50,13 +52,21 @@ export default function Navbar({ activeTab, setActiveTab, user, onOpenAuth, onLo
 
             <button
               onClick={() => setActiveTab('coordinacion')}
-              className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
+              className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 ${
                 activeTab === 'coordinacion'
                   ? 'bg-amber-400 text-slate-950 font-semibold shadow-md shadow-amber-400/20'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                  : isCoordinador
+                    ? 'text-slate-300 hover:text-white hover:bg-slate-800'
+                    : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/60'
               }`}
             >
-              Mesa Coordinación
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>Mesa Coordinación</span>
+              {!isCoordinador && (
+                <span className="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700">
+                  Restringido
+                </span>
+              )}
             </button>
 
             <button
@@ -88,18 +98,27 @@ export default function Navbar({ activeTab, setActiveTab, user, onOpenAuth, onLo
 
           {/* Usuario / Estado */}
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Indicador Supabase */}
+            {/* Indicador de Estado Supabase */}
             <div className="hidden lg:flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700">
-              <span className={`w-2 h-2 rounded-full ${isConfigured ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`}></span>
+              <span className={`w-2 h-2 rounded-full ${isConfigured ? 'bg-emerald-400' : 'bg-amber-500'}`}></span>
               <span className="text-slate-300 font-mono text-[11px]">
-                {isConfigured ? 'Supabase Live' : 'Modo Seguro / Mock'}
+                {isConfigured ? 'Supabase Conectado' : 'Supabase Pendiente'}
               </span>
             </div>
 
-            {user ? (
+            {authLoading ? (
+              <div className="w-8 h-8 rounded-lg bg-slate-800 animate-pulse"></div>
+            ) : user ? (
               <div className="flex items-center gap-2">
                 <div className="text-right hidden sm:block">
-                  <div className="text-xs font-semibold text-white leading-tight">{user.nombre}</div>
+                  <div className="text-xs font-semibold text-white leading-tight flex items-center gap-1.5 justify-end">
+                    <span>{user.nombre}</span>
+                    {user.isDemo && (
+                      <span className="text-[10px] bg-amber-500/20 text-amber-300 px-1 py-0.2 rounded font-mono border border-amber-500/30">
+                        DEMO
+                      </span>
+                    )}
+                  </div>
                   <div className="text-[10px] text-amber-400 font-mono capitalize">{user.rol}</div>
                 </div>
                 <button

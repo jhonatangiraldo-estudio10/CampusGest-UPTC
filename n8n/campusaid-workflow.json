@@ -1,5 +1,5 @@
 {
-  "name": "CampusAid UPTC - Caso 3: Mesa de Ayuda y Tutorías",
+  "name": "CampusGest UPTC - Caso 3: Mesa de Ayuda y Tutorías",
   "nodes": [
     {
       "parameters": {
@@ -17,7 +17,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// 1. Extracción de datos del webhook\nconst item = $input.first().json.body || $input.first().json;\n\nconst nombre = (item.estudiante_nombre || '').trim();\nconst codigo = String(item.codigo_uptc || '').trim();\nconst email = (item.email_institucional || '').trim().toLowerCase();\nconst tipo = (item.tipo_tramite || '').trim();\nconst asunto = (item.asignatura_o_lab || '').trim();\nconst desc = (item.descripcion || '').trim();\nconst requestId = item.request_id || $execution.id;\n\n// 2. Validaciones estrictas UPTC (Matriz P01, P02, P03)\nconst regexCodigo = /^[0-9]{9}$/;\nconst regexEmail = /^[^@\\s]+@uptc\\.edu\\.co$/i;\nconst tiposValidos = ['Tutoria', 'Laboratorio', 'Certificado'];\n\nif (!nombre || nombre.length < 3) {\n  throw new Error('Validación fallida: Nombre de estudiante inválido.');\n}\nif (!regexCodigo.test(codigo)) {\n  throw new Error('Validación fallida: El código UPTC debe tener exactamente 9 dígitos.');\n}\nif (!regexEmail.test(email)) {\n  throw new Error('Validación fallida: El correo debe terminar en @uptc.edu.co.');\n}\nif (!tiposValidos.includes(tipo)) {\n  throw new Error(`Validación fallida: Trámite '${tipo}' no soportado.`);\n}\nif (!desc || desc.length < 5) {\n  throw new Error('Validación fallida: Descripción insuficiente.');\n}\n\nreturn {\n  json: {\n    valido: true,\n    estudiante_id: item.estudiante_id || null,\n    estudiante_nombre: nombre,\n    codigo_uptc: codigo,\n    email_institucional: email,\n    tipo_tramite: tipo,\n    asignatura_o_lab: asunto,\n    descripcion: desc,\n    request_id: requestId,\n    estado: 'Pendiente',\n    creado_en: new Date().toISOString()\n  }\n};"
+        "jsCode": "// 1. Extracción y sanitización de entrada\nconst payload = $input.first().json.body || $input.first().json;\n\nconst nombre = String(payload.estudiante_nombre || '').trim();\nconst codigo = String(payload.codigo_uptc || '').trim();\nconst email = String(payload.email_institucional || '').trim().toLowerCase();\nconst tipo = String(payload.tipo_tramite || '').trim();\nconst asunto = String(payload.asignatura_o_lab || '').trim().slice(0, 200);\nconst desc = String(payload.descripcion || '').trim().slice(0, 2000);\nconst reqId = payload.request_id || $execution.id;\n\n// 2. Validaciones estrictas UPTC (Matriz P01, P02, P03)\nconst regexCodigo = /^[0-9]{9}$/;\nconst regexEmail = /^[^@\\s]+@uptc\\.edu\\.co$/i;\nconst tiposValidos = ['Tutoria', 'Laboratorio', 'Certificado'];\n\nif (!nombre || nombre.length < 3 || nombre.length > 150) {\n  throw new Error('Validación fallida: Nombre de estudiante inválido (3-150 caracteres).');\n}\nif (!regexCodigo.test(codigo)) {\n  throw new Error('Validación fallida: El código UPTC debe contener exactamente 9 dígitos.');\n}\nif (!regexEmail.test(email) || email.length > 255) {\n  throw new Error('Validación fallida: El correo debe ser institucional y terminar en @uptc.edu.co.');\n}\nif (!tiposValidos.includes(tipo)) {\n  throw new Error(`Validación fallida: Trámite '${tipo}' no soportado.`);\n}\nif (!desc || desc.length < 5) {\n  throw new Error('Validación fallida: Descripción insuficiente.');\n}\n\nreturn {\n  json: {\n    valido: true,\n    estudiante_id: payload.estudiante_id || null,\n    estudiante_nombre: nombre,\n    codigo_uptc: codigo,\n    email_institucional: email,\n    tipo_tramite: tipo,\n    asignatura_o_lab: asunto,\n    descripcion: desc,\n    request_id: reqId,\n    estado: 'Pendiente',\n    creado_en: new Date().toISOString()\n  }\n};"
       },
       "id": "node-validacion-02",
       "name": "Validación Reglas UPTC",
@@ -65,7 +65,7 @@
             {
               "id": "asg-02",
               "name": "email_coordinador",
-              "value": "coordinacion.academica@uptc.edu.co",
+              "value": "={{ $env.EMAIL_COORDINACION_ACADEMICA || 'coordinacion.academica@uptc.edu.co' }}",
               "type": "string"
             }
           ]
@@ -91,7 +91,7 @@
             {
               "id": "asg-04",
               "name": "email_coordinador",
-              "value": "laboratorios.ingenieria@uptc.edu.co",
+              "value": "={{ $env.EMAIL_RESPONSABLE_LABORATORIOS || 'laboratorios.ingenieria@uptc.edu.co' }}",
               "type": "string"
             }
           ]
@@ -117,7 +117,7 @@
             {
               "id": "asg-06",
               "name": "email_coordinador",
-              "value": "admisiones.certificados@uptc.edu.co",
+              "value": "={{ $env.EMAIL_RESPONSABLE_CERTIFICADOS || 'admisiones.certificados@uptc.edu.co' }}",
               "type": "string"
             }
           ]
@@ -133,10 +133,11 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO public.solicitudes_campus (\n  estudiante_id,\n  estudiante_nombre,\n  codigo_uptc,\n  email_institucional,\n  tipo_tramite,\n  asignatura_o_lab,\n  descripcion,\n  estado,\n  area_asignada,\n  request_id\n)\nVALUES (\n  NULLIF('{{ $json.estudiante_id }}', '')::uuid,\n  '{{ $json.estudiante_nombre }}',\n  '{{ $json.codigo_uptc }}',\n  '{{ $json.email_institucional }}',\n  '{{ $json.tipo_tramite }}',\n  '{{ $json.asignatura_o_lab }}',\n  '{{ $json.descripcion }}',\n  'Pendiente',\n  '{{ $json.area_asignada }}',\n  '{{ $json.request_id }}'::uuid\n)\nON CONFLICT (request_id) DO UPDATE SET\n  actualizado_en = now()\nRETURNING id, estudiante_nombre, tipo_tramite, estado, creado_en, area_asignada;"
+        "query": "INSERT INTO public.solicitudes_campus (\n  estudiante_id,\n  estudiante_nombre,\n  codigo_uptc,\n  email_institucional,\n  tipo_tramite,\n  asignatura_o_lab,\n  descripcion,\n  estado,\n  area_asignada,\n  request_id\n)\nVALUES (\n  NULLIF($1, '')::uuid,\n  $2,\n  $3,\n  $4,\n  $5,\n  $6,\n  $7,\n  $8,\n  $9,\n  $10::uuid\n)\nON CONFLICT (request_id) DO UPDATE SET\n  actualizado_en = now()\nRETURNING id, estudiante_nombre, tipo_tramite, estado, creado_en, area_asignada, request_id;",
+        "queryParams": "={{ [$json.estudiante_id || '', $json.estudiante_nombre, $json.codigo_uptc, $json.email_institucional, $json.tipo_tramite, $json.asignatura_o_lab || '', $json.descripcion, 'Pendiente', $json.area_asignada, $json.request_id] }}"
       },
       "id": "node-supabase-insert",
-      "name": "Supabase / Postgres Insert",
+      "name": "Supabase / Postgres Insert Parametrizado",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [1160, 300],
@@ -149,10 +150,10 @@
     },
     {
       "parameters": {
-        "fromEmail": "campusaid-notificaciones@uptc.edu.co",
+        "fromEmail": "={{ $env.SMTP_SENDER_EMAIL || 'notificaciones.campusgest@uptc.edu.co' }}",
         "toEmail": "={{ $('Destino: ' + $json.tipo_tramite).item.json.email_coordinador }}, {{ $('Validación Reglas UPTC').item.json.email_institucional }}",
-        "subject": "=[CampusAid UPTC] Nueva Solicitud Registrada: {{ $json.tipo_tramite }} (Ref: {{ $json.id }})",
-        "html": "=<h2>CampusAid UPTC — Notificación Institucional</h2><p>Estimado/a <strong>{{ $json.estudiante_nombre }}</strong> y equipo de <strong>{{ $json.area_asignada }}</strong>,</p><p>Se ha registrado satisfactoriamente la siguiente solicitud en la mesa de ayuda:</p><ul><li><strong>ID de Radicado:</strong> {{ $json.id }}</li><li><strong>Tipo de Trámite:</strong> {{ $json.tipo_tramite }}</li><li><strong>Estado Inicial:</strong> {{ $json.estado }}</li><li><strong>Fecha:</strong> {{ $json.creado_en }}</li></ul><p>Puede consultar el avance desde el portal web con su usuario institucional.</p><hr/><small>Universidad Pedagógica y Tecnológica de Colombia - CampusAid 2026</small>"
+        "subject": "=[CampusGest UPTC] Radicado de Solicitud: {{ $json.tipo_tramite }} (Ref: {{ $json.id }})",
+        "html": "=<h2>CampusGest UPTC — Notificación Institucional</h2><p>Estimado/a <strong>{{ $json.estudiante_nombre }}</strong> y equipo de <strong>{{ $json.area_asignada }}</strong>,</p><p>Se ha registrado satisfactoriamente la siguiente solicitud en la mesa de ayuda:</p><ul><li><strong>ID de Radicado:</strong> {{ $json.id }}</li><li><strong>Tipo de Trámite:</strong> {{ $json.tipo_tramite }}</li><li><strong>Estado Inicial:</strong> {{ $json.estado }}</li><li><strong>Fecha:</strong> {{ $json.creado_en }}</li></ul><p>Puede consultar el avance desde el portal web con su usuario institucional.</p><hr/><small>Universidad Pedagógica y Tecnológica de Colombia - CampusGest 2026</small>"
       },
       "id": "node-email-notif",
       "name": "Notificación por Correo",
@@ -169,7 +170,7 @@
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={\n  \"status\": \"ok\",\n  \"solicitud_id\": \"{{ $('Supabase / Postgres Insert').item.json.id }}\",\n  \"tipo_tramite\": \"{{ $('Supabase / Postgres Insert').item.json.tipo_tramite }}\",\n  \"estado\": \"{{ $('Supabase / Postgres Insert').item.json.estado }}\",\n  \"area_asignada\": \"{{ $('Supabase / Postgres Insert').item.json.area_asignada }}\",\n  \"mensaje\": \"Solicitud registrada y notificada exitosamente mediante N8N.\"\n}",
+        "responseBody": "={\n  \"status\": \"ok\",\n  \"solicitud_id\": \"{{ $('Supabase / Postgres Insert Parametrizado').item.json.id }}\",\n  \"tipo_tramite\": \"{{ $('Supabase / Postgres Insert Parametrizado').item.json.tipo_tramite }}\",\n  \"estado\": \"{{ $('Supabase / Postgres Insert Parametrizado').item.json.estado }}\",\n  \"area_asignada\": \"{{ $('Supabase / Postgres Insert Parametrizado').item.json.area_asignada }}\",\n  \"mensaje\": \"Solicitud registrada y notificada exitosamente mediante N8N.\"\n}",
         "options": {}
       },
       "id": "node-respond-webhook",
@@ -231,7 +232,7 @@
       "main": [
         [
           {
-            "node": "Supabase / Postgres Insert",
+            "node": "Supabase / Postgres Insert Parametrizado",
             "type": "main",
             "index": 0
           }
@@ -242,7 +243,7 @@
       "main": [
         [
           {
-            "node": "Supabase / Postgres Insert",
+            "node": "Supabase / Postgres Insert Parametrizado",
             "type": "main",
             "index": 0
           }
@@ -253,14 +254,14 @@
       "main": [
         [
           {
-            "node": "Supabase / Postgres Insert",
+            "node": "Supabase / Postgres Insert Parametrizado",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Supabase / Postgres Insert": {
+    "Supabase / Postgres Insert Parametrizado": {
       "main": [
         [
           {

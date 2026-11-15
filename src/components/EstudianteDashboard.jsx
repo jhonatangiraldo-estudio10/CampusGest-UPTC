@@ -1,19 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, RefreshCw, FileText, BookOpen, FlaskConical, Clock, CheckCircle, AlertTriangle, XCircle, ChevronRight } from 'lucide-react';
-import { fetchSolicitudes } from '../services/supabase';
+import { Search, Filter, RefreshCw, FileText, BookOpen, FlaskConical, Clock, CheckCircle, AlertTriangle, XCircle, ChevronRight, UserCheck, Lock } from 'lucide-react';
+import { fetchSolicitudes, isConfigured } from '../services/supabase';
 
-export default function EstudianteDashboard({ user, onNewRequest }) {
+export default function EstudianteDashboard({ user, onOpenAuth, onNewRequest }) {
   const [solicitudes, setSolicitudes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [errorInfo, setErrorInfo] = useState(null);
+  const [isDemoData, setIsDemoData] = useState(false);
+
   const [filterTipo, setFilterTipo] = useState('Todos');
   const [filterEstado, setFilterEstado] = useState('Todos');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedItem, setSelectedItem] = useState(null);
 
   const loadData = async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
-    const { data } = await fetchSolicitudes(user);
-    if (data) {
+    setErrorInfo(null);
+    const { data, error, isDemo } = await fetchSolicitudes(user);
+    setIsDemoData(Boolean(isDemo));
+
+    if (error) {
+      setErrorInfo(error.message);
+      setSolicitudes([]);
+    } else if (data) {
       setSolicitudes(data);
     }
     setLoading(false);
@@ -53,6 +67,27 @@ export default function EstudianteDashboard({ user, onNewRequest }) {
     }
   };
 
+  // Si el usuario no ha iniciado sesión
+  if (!user) {
+    return (
+      <div className="max-w-3xl mx-auto bg-slate-800/80 border border-slate-700/80 rounded-2xl p-8 text-center backdrop-blur-sm shadow-xl">
+        <div className="w-14 h-14 rounded-2xl bg-amber-400/20 text-amber-400 flex items-center justify-center mx-auto mb-4 border border-amber-400/30">
+          <Lock className="w-7 h-7" />
+        </div>
+        <h3 className="text-xl font-bold text-white">Autenticación Requerida</h3>
+        <p className="text-sm text-slate-400 mt-2 max-w-md mx-auto">
+          Para consultar el estado de sus trámites académicos bajo las políticas de seguridad RLS de Supabase, debe autenticarse con su cuenta institucional.
+        </p>
+        <button
+          onClick={onOpenAuth}
+          className="mt-6 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold px-6 py-2.5 rounded-xl text-xs uppercase tracking-wider transition shadow-lg shadow-amber-400/20"
+        >
+          Iniciar Sesión Institucional
+        </button>
+      </div>
+    );
+  }
+
   const filtered = solicitudes.filter(item => {
     const matchTipo = filterTipo === 'Todos' || item.tipo_tramite === filterTipo;
     const matchEstado = filterEstado === 'Todos' || item.estado === filterEstado;
@@ -68,14 +103,21 @@ export default function EstudianteDashboard({ user, onNewRequest }) {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       
-      {/* Banner Superior y Acciones */}
+      {/* Banner Superior */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-800/80 border border-slate-700/80 rounded-2xl p-6 backdrop-blur-sm">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-            Mis Solicitudes y Trámites
-          </h2>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+              Mis Solicitudes y Trámites
+            </h2>
+            {isDemoData && (
+              <span className="bg-amber-500/20 text-amber-300 text-[11px] font-mono font-semibold px-2 py-0.5 rounded border border-amber-500/30">
+                Datos Demostración Local
+              </span>
+            )}
+          </div>
           <p className="text-sm text-slate-400 mt-1">
-            Consulta en tiempo real del estado de sus trámites con validación RLS de Supabase.
+            Consulta protegida por Row Level Security (RLS): únicamente se listan radicados asociados a su identidad.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -96,7 +138,28 @@ export default function EstudianteDashboard({ user, onNewRequest }) {
         </div>
       </div>
 
-      {/* Barra de Filtros y Búsqueda */}
+      {/* Notificación informativa si Supabase no está configurado */}
+      {!isConfigured && !isDemoData && (
+        <div className="p-4 bg-amber-950/40 border border-amber-500/40 rounded-xl text-amber-200 text-xs flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <span className="font-bold text-amber-300 block">Conexión a Base de Datos Supabase Pendiente</span>
+            <p className="mt-0.5 text-amber-200/90">
+              Las credenciales de Supabase no han sido cargadas en el archivo de entorno. Una vez completadas por el integrador de base de datos, las consultas en tiempo real se sincronizarán aquí.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Notificación de Error */}
+      {errorInfo && (
+        <div className="p-4 bg-rose-950/50 border border-rose-500/40 rounded-xl text-rose-200 text-xs flex items-center gap-3">
+          <AlertTriangle className="w-5 h-5 text-rose-400 flex-shrink-0" />
+          <span>{errorInfo}</span>
+        </div>
+      )}
+
+      {/* Filtros */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-800/60 border border-slate-700/60 p-4 rounded-xl">
         <div className="relative">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
@@ -142,7 +205,7 @@ export default function EstudianteDashboard({ user, onNewRequest }) {
       {loading ? (
         <div className="text-center py-16 bg-slate-800/40 rounded-2xl border border-slate-800">
           <RefreshCw className="w-8 h-8 text-amber-400 animate-spin mx-auto mb-3" />
-          <p className="text-sm text-slate-400">Consultando base de datos Supabase...</p>
+          <p className="text-sm text-slate-400">Consultando base de datos...</p>
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-16 bg-slate-800/40 rounded-2xl border border-slate-800">
@@ -150,8 +213,8 @@ export default function EstudianteDashboard({ user, onNewRequest }) {
           <p className="text-base font-semibold text-slate-300">No se encontraron solicitudes</p>
           <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
             {searchTerm || filterTipo !== 'Todos' || filterEstado !== 'Todos'
-              ? 'Pruebe ajustando los filtros de búsqueda.'
-              : 'Aún no ha radicado solicitudes. Inicie una nueva desde el formulario.'}
+              ? 'No hay registros coincidentes con los filtros seleccionados.'
+              : 'Aún no ha radicado solicitudes con esta cuenta institucional.'}
           </p>
         </div>
       ) : (

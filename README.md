@@ -1,70 +1,74 @@
-# CampusAid UPTC
+# CampusGest-UPTC
 
-**Caso 3 — Mesa de Ayuda y Tutorías Inteligentes**  
-Taller Full-Stack · Google Antigravity + Supabase + N8N · UPTC
+**Mesa de Ayuda y Gestión de Solicitudes Académicas**  
+Caso 3 · Taller Full-Stack · Google Antigravity + Supabase + N8N · UPTC
 
-![Arquitectura de CampusAid](assets/diagramas/arquitectura.svg)
+![Arquitectura de CampusGest](assets/diagramas/arquitectura.svg)
 
-> **Alcance:** esta carpeta contiene la documentación de colaboración e integración. Se debe incorporar al repositorio de la aplicación creada en Antigravity. No incluye ni reemplaza el código fuente del frontend, credenciales, ni una automatización ya configurada.
+> **Estado del proyecto:** frontend modular y API serverless auditados y fortalecidos bajo estándares de seguridad OWASP. Preparado para la integración de servicios cloud (Supabase PostgreSQL / Auth y N8N Workflow) por parte del responsable de integración.
 
-## Navegación
+## Navegación de Documentación
 
 | Documento | Contenido |
 |---|---|
-| [Inicio rápido](docs/01-inicio-rapido.md) | Orden de trabajo y prerrequisitos |
-| [Windows PowerShell](docs/02-windows-powershell.md) | Clonar, configurar, ejecutar y enviar cambios |
-| [Linux](docs/03-linux.md) | Comandos Bash equivalentes |
-| [Supabase](docs/04-supabase.md) | Proyecto, SQL, Auth y RLS |
-| [N8N](docs/05-n8n.md) | Workflow, credenciales, webhooks y correo |
-| [Integración](docs/06-integracion.md) | Contrato de datos y flujo sin duplicados |
-| [Pruebas](docs/07-pruebas.md) | Casos de verificación y evidencias |
-| [GitHub](docs/08-github.md) | Ramas, Pull Request y conflictos |
-| [Vercel](docs/09-vercel.md) | Variables, despliegue y validación pública |
-| [Solución de errores](docs/10-errores-frecuentes.md) | Diagnóstico básico |
-| [Bitácora de entrega](docs/11-bitacora.md) | URLs, requisitos y checklist |
-| [Guía de imágenes y enlaces](docs/12-imagenes-enlaces.md) | Capturas, rutas relativas y anclas |
+| [Inicio rápido](docs/01-inicio-rapido.md) | Orden de trabajo y prerrequisitos del proyecto |
+| [Windows PowerShell](docs/02-windows-powershell.md) | Clonar, configurar, ejecutar y versionar |
+| [Linux](docs/03-linux.md) | Comandos equivalentes en entorno Bash |
+| [Supabase](docs/04-supabase.md) | Configuración del proyecto, SQL, Auth y RLS |
+| [N8N](docs/05-n8n.md) | Workflow, credenciales, webhooks y notificación por correo |
+| [Integración](docs/06-integracion.md) | Contrato de datos y ruta única de persistencia |
+| [Pruebas](docs/07-pruebas.md) | Casos de verificación, matriz QA y evidencias |
+| [GitHub](docs/08-github.md) | Estrategia de ramas, Pull Requests y colaboración |
+| [Vercel](docs/09-vercel.md) | Despliegue de frontend y variables privadas de API |
+| [Solución de errores](docs/10-errores-frecuentes.md) | Diagnóstico básico y preguntas frecuentes |
+| [Bitácora de entrega](docs/11-bitacora.md) | Metadatos, requisitos, prompt R-C-I-F-A y reflexión crítica |
+| [Guía de imágenes y enlaces](docs/12-imagenes-enlaces.md) | Especificación de rutas relativas y capturas |
 | [Guía previa de instalación](docs/13-guia-original.md) | Procedimiento de base ampliado |
+| [Seguridad e integración pendiente](docs/14-seguridad-e-integracion-pendiente.md) | **Auditoría de seguridad, correcciones OWASP y guía para el integrador** |
 
-## Flujo de trabajo
+## Flujo de Trabajo y Arquitectura
 
 ![Secuencia de integración](assets/diagramas/flujo.svg)
 
-1. El responsable del frontend crea el proyecto con Antigravity y publica el repositorio.
-2. El integrador clona el repositorio, crea una rama y configura Supabase.
-3. El integrador configura N8N, conecta la aplicación y ejecuta pruebas.
-4. Ambos revisan un Pull Request y despliegan en Vercel.
-5. Se documentan evidencias verificadas y las URLs finales.
+1. **Frontend (React + Vite + Tailwind CSS):** valida en tiempo real código institucional de 9 dígitos y correo `@uptc.edu.co`.
+2. **API Serverless (`/api/solicitudes`):** actúa como proxy seguro hacia N8N. Aplica control de tamaño (50 KB), whitelisting de campos, idempotencia mediante `request_id` y timeout con `AbortController`.
+3. **N8N Workflow (`n8n/campusaid-workflow.json`):** recibe la solicitud autenticada, clasifica por `tipo_tramite` mediante nodo Switch, ejecuta inserción parametrizada en PostgreSQL e invoca el envío de correos.
+4. **Supabase PostgreSQL & RLS:** gestiona persistencia con políticas Row Level Security para aislar las solicitudes de cada estudiante y restringir la atención a coordinadores autorizados.
 
-## Responsabilidades
+## División de Responsabilidades
 
-| Frente | Responsable sugerido | Entrega |
+| Frente | Responsable | Estado / Entregable |
 |---|---|---|
-| Interfaz y validaciones | Desarrollo frontend | Formularios y panel de solicitudes |
-| Supabase | Integración | Migraciones, Auth, RLS y consultas |
-| N8N | Integración | Workflow importable y correo |
-| Integración y pruebas | Ambos | Tres registros reales y ejecución exitosa |
-| GitHub y Vercel | Ambos | PR revisado y despliegue público |
+| Frontend y Validaciones | Desarrollo Frontend | Formulario reactivo, paneles protegidos y suite QA local |
+| Seguridad y API Gateway | Full-Stack / Seguridad | `api/solicitudes.js` fortalecida, rechazo de DoS y respuestas honestas |
+| Supabase Auth & PostgreSQL | Integrador Cloud | Migración SQL versionada en `supabase/migrations/`, RLS y usuarios reales |
+| Workflow N8N & Correo | Integrador Cloud | Workflow parametrizado en `n8n/campusaid-workflow.json` y credenciales SMTP |
+| Despliegue en Vercel | Ambos | Despliegue con HTTPS y variables privadas en el servidor |
 
-## Requisitos mínimos del caso 3
+## Requisitos del Caso 3
 
-- Trámites: **Tutoría**, **Laboratorio** y **Certificado**.
-- Código estudiantil: **9 dígitos**; correo terminado en `@uptc.edu.co`.
-- Tabla principal: `solicitudes_campus`.
-- Flujo: Webhook POST → Validación → Switch → Supabase → Correo → Respuesta JSON.
-- Interfaz web responsive, persistencia real y acceso protegido.
+- **Trámites soportados:** `Tutoria`, `Laboratorio` y `Certificado`.
+- **Código estudiantil:** exactamente 9 dígitos numéricos (`^[0-9]{9}$`).
+- **Correo institucional:** terminado exclusivamente en `@uptc.edu.co`.
+- **Tabla principal:** `public.solicitudes_campus`.
+- **Flujo:** Webhook POST → Validación → Switch → Supabase Insert → Correo → Respuesta JSON.
 
-## Rutas importantes
+## Ejecución Local y Pruebas
 
-- [Supabase](https://supabase.com/dashboard)
-- [N8N](https://docs.n8n.io/)
-- [Git](https://git-scm.com/downloads)
-- [Node.js](https://nodejs.org/en/download)
-- [Vercel](https://vercel.com/)
+```bash
+# 1. Instalar dependencias limpias
+npm ci
 
-## Evidencias
+# 2. Compilar producción
+npm run build
 
-Añadir capturas **reales** en [`assets/capturas/`](assets/capturas/) cuando termine la integración. Se indican los nombres previstos en [Pruebas](docs/07-pruebas.md). No subir capturas con claves o datos personales de estudiantes reales.
+# 3. Ejecutar suite de pruebas de seguridad y contratos
+npm test
+
+# 4. Iniciar servidor local de desarrollo
+npm run dev
+```
 
 ---
 
-[Ir al inicio rápido →](docs/01-inicio-rapido.md)
+[Ir a la guía de seguridad e integración pendiente →](docs/14-seguridad-e-integracion-pendiente.md)
