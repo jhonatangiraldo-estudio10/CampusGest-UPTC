@@ -44,6 +44,7 @@ Caso 3 · Taller Full-Stack · Google Antigravity + Supabase + N8N · UPTC
 | Supabase Auth & PostgreSQL | Integrador Cloud | Migración SQL versionada en `supabase/migrations/`, RLS y usuarios reales |
 | Workflow N8N & Correo | Integrador Cloud | Workflow parametrizado en `n8n/campusaid-workflow.json` y credenciales SMTP |
 | Despliegue en Vercel | Ambos | Despliegue con HTTPS y variables privadas en el servidor |
+| Realizar git push (MCP) | integrador bacend | intergración del MCP o IA de manera automática para realizar controles de versiones CI/CD automático |
 
 ## Requisitos del Caso 3
 
