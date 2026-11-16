@@ -1,4 +1,5 @@
 --tabla estudiantes
+
 CREATE TABLE estudiantes (
     id_estudiante UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     nombre VARCHAR(100) NOT NULL,
@@ -12,7 +13,8 @@ CREATE TABLE estudiantes (
     telefono VARCHAR(20),
     creado_en TIMESTAMPTZ DEFAULT NOW()
 );
---Crear tabla de docentes
+-- tabla de docentes
+
 CREATE TABLE docentes (
     id_docente UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     nombre VARCHAR(100) NOT NULL,
@@ -23,7 +25,8 @@ CREATE TABLE docentes (
     telefono VARCHAR(20),
     disponibilidad BOOLEAN DEFAULT TRUE
 );
---Crear tabla de coordinadores
+-- tabla de coordinadores
+
 CREATE TABLE coordinadores (
     id_coordinador UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     nombre VARCHAR(100) NOT NULL,
@@ -33,8 +36,7 @@ CREATE TABLE coordinadores (
     cargo VARCHAR(100),
     telefono VARCHAR(20)
 );
---Crear tabla principal de solicitudes
---Esta es la tabla central del sistema. Aquí se registran todas las solicitudes independientemente de su tipo.
+-- tabla principal de solicitudes
 
 CREATE TABLE solicitudes_campus (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -68,7 +70,7 @@ CREATE TABLE solicitudes_campus (
     creado_en TIMESTAMPTZ DEFAULT NOW(),
     actualizado_en TIMESTAMPTZ DEFAULT NOW()
 );
---Crear tabla de solicitudes de tutorías
+-- tabla de solicitudes de tutorías
 
 CREATE TABLE solicitudes_tutorias (
     id_tutoria UUID PRIMARY KEY
@@ -85,7 +87,7 @@ CREATE TABLE solicitudes_tutorias (
         CHECK (modalidad IN ('Presencial', 'Virtual')),
     observaciones TEXT
 );
---Crear tabla de laboratorios
+--tabla de laboratorios
 
 CREATE TABLE laboratorios (
     id_laboratorio UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -96,7 +98,7 @@ CREATE TABLE laboratorios (
     recursos_disponibles TEXT,
     disponible BOOLEAN DEFAULT TRUE
 );
-// Crear tabla de préstamos de laboratorios
+--tabla de préstamos de laboratorios
 
 CREATE TABLE prestamos_laboratorios (
     id_prestamo UUID PRIMARY KEY
@@ -116,7 +118,7 @@ CREATE TABLE prestamos_laboratorios (
 
     CHECK (hora_fin > hora_inicio)
 );
---Crear tabla de solicitudes de certificados
+--tabla de solicitudes de certificados
 
 CREATE TABLE solicitudes_certificados (
     id_certificado UUID PRIMARY KEY
@@ -128,7 +130,7 @@ CREATE TABLE solicitudes_certificados (
     numero_certificado VARCHAR(50) UNIQUE,
     archivo_pdf TEXT
 );
---Crear tabla de notificaciones
+-- tabla de notificaciones
 
 CREATE TABLE notificaciones (
     id_notificacion UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -149,8 +151,7 @@ CREATE TABLE notificaciones (
             'Fallido'
         ))
 );
---Crear tabla de historial de estados
---Es recomendable porque permite conocer quién cambió el estado de una solicitud y cuándo ocurrió.
+--tabla de historial de estados
 
 
 CREATE TABLE historial_solicitudes (
